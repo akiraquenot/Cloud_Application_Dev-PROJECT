@@ -33,7 +33,7 @@ app.get('/flightInfo', function (req, res) {
   res.sendFile( path.app_standard + "flightInfo.html", {id:flight_id} );
 })
 app.get('/analyst', function (req, res) {
-  res.sendFile( path.app_analyste + "analyst.html" );
+  res.sendFile( path.app_analyste + "index.html" );
 })
 app.get('/admin', function (req, res) {
   res.sendFile( path.app_administrateur + "" );

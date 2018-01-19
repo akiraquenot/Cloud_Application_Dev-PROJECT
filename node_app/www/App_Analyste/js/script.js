@@ -1,107 +1,135 @@
+
 function onload() {
-  displayDelay();
   getAirportList();
-}
-function displayDelay() {
-  $.getJSON('db_data?q=delay_avg', function(data) {
-      var container = document.getElementById("percentage-container");
-      for (item of data) {
-        container.innerHTML += '<div class="col-md-2">'
-        + '<svg viewbox="0 0 36 36" class="circular-chart blue">'
-        + '<path class="circle-bg"'
-        + 'd="M18 2.0845'
-        + 'a 15.9155 15.9155 0 0 1 0 31.831'
-        + 'a 15.9155 15.9155 0 0 1 0 -31.831"'
-        + '/>'
-        + '<path class="circle"'
-        + 'stroke-dasharray="' + parseFloat(item.avg_Delay)*100 + ', 100"'
-        + 'd="M18 2.0845'
-        + 'a 15.9155 15.9155 0 0 1 0 31.831'
-        + 'a 15.9155 15.9155 0 0 1 0 -31.831"'
-        + '/>'
-        + '<text x="18" y="19" class="percentage">' + item._id + ' (' + parseInt(parseFloat(item.avg_Delay)*100) + '%)</text>'
-        + '</svg>'
-        + '</div>'
-      }
-  });
 }
 
 function getAirportList() {
   $.getJSON('db_data?q=airports', function(data) {
       var list = document.getElementById("originAiports");
+      document.getElementById("loader").innerHTML = "";
       for (item of data) {
         var option = document.createElement("option");
         option.text = item._id;
         option.value = item._id;
         list.appendChild(option);
       }
+      list.classList.remove('is-invalid');
+      list.classList.add('is-valid');
   });
 }
 
-function displayArray(json_data) {
-  var table_container = document.getElementById("table-container");
-  table_container.innerHTML = '<table id="flights_table">'
-    +'<tr>'
-    +'<th>Flight ID</th>'
-    +'<th>Date</th>'
-    +'<th>Info</th>'
-    +'</tr>'
-    +'</table>';
-  var flights_table = document.getElementById("flights_table");
-  for (elem of json_data) {
-    var FlightDate = elem.FlightDate.substring(0,10);
-    flights_table.innerHTML += '<tr onclick="window.location.href=\'/flightInfo?id=' + elem._id + '\';">'
-      +'<td>' + elem._id + '</td>'
-      +'<td>' + FlightDate + '</td>'
-      +'<td>' + elem.origin + ' -> ' + elem.destination + '</td>'
-      +'</tr>';
-  }
-
+function displayInfo() {
+  var selectedAiport = document.getElementById("originAiports").value;
+  move(0,20);
+  diplayDelayAvg(selectedAiport);
+  displayDelayBar(selectedAiport);
+  display10arrComp(selectedAiport);
+  display10depComp(selectedAiport);
 }
 
-function displayFlights() {
-  var o_airport = document.getElementById("originAiports").value;
-  var from_date = document.getElementById("from").value;
-  var to_date = document.getElementById("to").value;
-  if((o_airport && from_date && to_date) != '') {
-    var json_url = '/db_data?q=flights_arc&o_airport=' + o_airport + '&from=' + from_date + '&to=' + to_date;
-    console.log(json_url);
-    d3.json(json_url, function(json_data) {
-      // Arcs coordinates can be specified explicitly with latitude/longtitude,
-      // or just the geographic center of the state/country.
-      map.arc(json_data);
-      displayArray(json_data);
-    });
-  }
-}
+function move(from, to) {
+    var elem = document.getElementById("result-progress");
+    var width = from;
+    var id = setInterval(frame, 10);
 
-function hide_container(container_num) {
-  switch (container_num) {
-    case 1:
-      var container = document.getElementById("percentage-container");
-      var icon = document.getElementById("icon1");
-
-      if($(container).is(":visible")) {
-        icon.innerHTML = '<i class="fas fa-angle-left" style="height:100%; font-size: 250%; color : white"></i>';
-        $(container).hide();
-      } else {
-        icon.innerHTML = '<i class="fas fa-angle-down" style="height:100%; font-size: 250%; color : white"></i>'
-        $(container).show();
-      }
-      break;
-      case 2:
-        var container = document.getElementById("map-container");
-        var icon = document.getElementById("icon2");
-
-        if($(container).is(":visible")) {
-          icon.innerHTML = '<i class="fas fa-angle-left" style="height:100%; font-size: 250%; color : white"></i>';
-          $(container).hide();
+    function frame() {
+        if (width >= to) {
+            clearInterval(id);
         } else {
-          icon.innerHTML = '<i class="fas fa-angle-down" style="height:100%; font-size: 250%; color : white"></i>'
-          $(container).show();
+            width++;
+            elem.style.width = width + '%';
         }
-        break;
-      default:
-        break;
-  }
+    }
+}
+
+function diplayDelayAvg(selectedAiport) {
+  $.getJSON('db_data?q=dep_delay_avg&airport='+selectedAiport, function(data) {
+    move(20,40);
+    document.getElementById("dep-delay-container").innerHTML =
+      '<div class="c100 p' + parseInt(parseFloat(data[0].avg_Delay)*100) + ' dark big orange" style=" display: table; margin: 0 auto;">'
+      + '<span>' + parseInt(parseFloat(data[0].avg_Delay)*100) + '%</span>'
+      + '<div class="slice">'
+      + '<div class="bar"></div>'
+      + '<div class="fill"></div>'
+      + '</div>'
+      + '</div>';
+  });
+  $.getJSON('db_data?q=arr_delay_avg&airport='+selectedAiport, function(data) {
+    move(40,60);
+    document.getElementById("arr-delay-container").innerHTML =
+      '<div class="c100 p' + parseInt(parseFloat(data[0].avg_Delay)*100) + ' dark big orange" style=" display: table; margin: 0 auto;">'
+      + '<span>' + parseInt(parseFloat(data[0].avg_Delay)*100) + '%</span>'
+      + '<div class="slice">'
+      + '<div class="bar"></div>'
+      + '<div class="fill"></div>'
+      + '</div>'
+      + '</div>';
+  });
+}
+
+function displayDelayBar(selectedAiport) {
+  $.getJSON('db_data?q=dep_delay_avg&airport='+selectedAiport, function(json_data) {
+    move(60,80);
+    var depDelayTime = parseFloat(json_data[0].avg_DelayTime);
+    $.getJSON('db_data?q=arr_delay_avg&airport='+selectedAiport, function(json_data2) {
+      move(80,100);
+      var arrDelayTime = parseFloat(json_data2[0].avg_DelayTime);
+      var data = {
+        labels: ["Departures", "Arrivals"],
+        datasets: [
+          {
+              label: "Delay Average (min)",
+              fillColor: "rgba(220,220,220,0.5)",
+              strokeColor: "rgba(220,220,220,0.8)",
+              highlightFill: "rgba(220,220,220,0.75)",
+              highlightStroke: "rgba(220,220,220,1)",
+              data: [depDelayTime,arrDelayTime]
+          }
+        ]
+      }
+      var options = {
+          scaleBeginAtZero: false,
+          responsive: true,
+          scaleStartValue : -50,
+          maintainAspectRatio: false,
+      };
+
+      var ctx = document.getElementById("myChart").getContext("2d");
+
+
+      var myBarChart = new Chart(ctx, {
+          type: 'bar',
+          data: data,
+          options: options
+      });
+      ctx.height = 500;
+      ctx.width = 100;
+    });
+  });
+}
+
+function display10arrComp(selectedAiport) {
+  $.getJSON('db_data?q=arr10companies&airport='+selectedAiport, function(json_data) {
+    var tableBody = document.getElementById("top10Arr");
+    tableBody.innerHTML = "";
+    for(item of json_data) {
+      tableBody.innerHTML += "<tr>"
+        + "<th scope='row'>" + item._id + "</th>"
+        + "<td>" + item.count + "</td>"
+        + "</tr>"
+    }
+  });
+}
+
+function display10depComp(selectedAiport) {
+  $.getJSON('db_data?q=dep10companies&airport='+selectedAiport, function(json_data) {
+    var tableBody = document.getElementById("top10Dep");
+    tableBody.innerHTML = "";
+    for(item of json_data) {
+      tableBody.innerHTML += "<tr>"
+        + "<th scope='row'>" + item._id + "</th>"
+        + "<td>" + item.count + "</td>"
+        + "</tr>"
+    }
+  });
 }
